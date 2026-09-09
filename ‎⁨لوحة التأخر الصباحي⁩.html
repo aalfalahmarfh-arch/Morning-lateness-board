@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة متابعة التأخر الصباحي - مدارس باب المعرفة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --teal-900:#0E3B36; --teal-700:#159A83; --paper:#F7F5EF; --panel:#FFFFFF;
+  --ink:#20261F; --ink-soft:#6B6459; --line:#E7E3D8; --radius:16px;
+  --shadow:0 8px 24px rgba(20,30,25,.06);
+  --yellow:#D9A441; --yellow-bg:#FBF1DD;
+  --orange:#C9722A; --orange-bg:#FBE7D6;
+  --red:#B9432E; --red-bg:#FBE1DC;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Tajawal','IBM Plex Sans Arabic','Cairo',sans-serif;
+}
+button,input,select{font-family:inherit;}
+
+/* ===== LOGIN ===== */
+#loginScreen{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(21,154,131,.16), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(201,138,42,.14), transparent 45%),
+    var(--teal-900);
+  padding:24px;text-align:center;
+}
+.login-card{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:22px;
+  padding:32px 26px;max-width:360px;width:100%;color:#fff;
+}
+.brand-mark{
+  width:64px;height:64px;border-radius:16px;background:rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;
+  margin:0 auto 14px;overflow:hidden;
+}
+.brand-mark img{width:100%;height:100%;object-fit:contain;}
+#loginTitleText{font-size:19px;margin:0 0 4px;}
+.login-card .sub{color:#B9D9CF;font-size:12.5px;margin:0 0 20px;}
+#pinDots{display:flex;justify-content:center;gap:10px;margin-bottom:22px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.5);}
+.pin-dot.filled{background:#fff;border-color:#fff;}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.key{
+  padding:16px 0;border-radius:14px;border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.08);color:#fff;font-size:18px;font-weight:700;cursor:pointer;
+}
+.key:active{background:rgba(255,255,255,.2);}
+#loginMsg{min-height:18px;font-size:12.5px;color:#F3B8B0;margin-top:14px;}
+
+/* ===== APP ===== */
+#app{display:none;min-height:100vh;}
+.topbar{
+  background:var(--panel);border-bottom:1px solid var(--line);padding:14px 20px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:5;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-left .brand-mark{width:38px;height:38px;border-radius:10px;background:var(--teal-900);font-size:13px;margin:0;}
+#topbarTitleText{font-size:16px;font-weight:800;color:var(--teal-900);margin:0;}
+#schoolNameLine{font-size:11.5px;color:var(--ink-soft);}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pill-btn{
+  background:var(--paper);border:1px solid var(--line);border-radius:999px;
+  padding:9px 16px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink);white-space:nowrap;
+}
+.pill-btn:hover{background:#EFEAD9;}
+.save-indicator{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);}
+.save-indicator .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-700);}
+
+.main-wrap{max-width:1400px;margin:0 auto;padding:20px;}
+
+.stats-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.stat-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;flex:1;min-width:160px;
+  box-shadow:var(--shadow);
+}
+.stat-card .num{font-size:24px;font-weight:800;color:var(--teal-900);}
+.stat-card .lbl{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+
+.filters-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.filters-row select,.filters-row input{
+  padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;background:var(--panel);
+}
+.filters-row input{flex:1;min-width:200px;}
+
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.btn{
+  padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);
+  font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px;
+}
+.btn:hover{background:#F2EFE4;}
+.btn.primary{background:var(--teal-700);color:#fff;border-color:var(--teal-700);}
+.btn.primary:hover{background:#128571;}
+
+.table-wrap{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:auto;box-shadow:var(--shadow);
+}
+table{width:100%;border-collapse:collapse;min-width:900px;font-size:13.5px;}
+thead th{
+  background:var(--teal-900);color:#fff;font-weight:700;font-size:12.5px;
+  padding:12px 10px;text-align:center;white-space:nowrap;position:sticky;top:0;
+}
+tbody td{padding:10px;border-bottom:1px solid #F0EEE5;text-align:center;vertical-align:middle;}
+tbody tr:hover{background:#FAFAF6;}
+.name-cell{min-width:220px;text-align:right !important;font-weight:700;}
+.tardy-count-badge{
+  display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;
+  border-radius:999px;font-weight:800;font-size:13px;
+}
+.tc-0{background:#EAF4F1;color:var(--teal-900);}
+.tc-low{background:var(--yellow-bg);color:#8A5A00;}
+.tc-mid{background:var(--orange-bg);color:#8A3E10;}
+.tc-high{background:var(--red-bg);color:#7A2418;}
+.action-btns{display:flex;gap:6px;justify-content:center;}
+.icon-btn{
+  border:none;background:var(--paper);border-radius:8px;padding:7px 9px;cursor:pointer;font-size:13px;
+}
+.icon-btn:hover{background:#EFEAD9;}
+.tardy-today-btn{background:#DDF3E4;color:#0F5C33;font-weight:700;}
+.tardy-today-btn:hover{background:#c9ebd4;}
+.tardy-today-btn.done{background:#EFEAD9;color:var(--ink-soft);}
+.del-btn{background:#FBE1E1;color:#9B1C1C;}
+
+/* ===== MODALS/OVERLAYS ===== */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(20,30,25,.45);z-index:50;
+  align-items:center;justify-content:center;padding:20px;
+}
+.overlay.show{display:flex;}
+.modal{
+  background:var(--panel);border-radius:18px;padding:24px;max-width:520px;width:100%;
+  max-height:85vh;overflow:auto;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.2);
+}
+.modal h3{margin:0 0 14px;font-size:17px;color:var(--teal-900);}
+.close-x{
+  position:absolute;top:16px;left:16px;background:var(--paper);border:none;border-radius:8px;
+  width:30px;height:30px;cursor:pointer;font-size:14px;
+}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+.field input,.field select{
+  width:100%;box-sizing:border-box;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;
+}
+.history-date-row{
+  display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid #F0EEE5;font-size:13.5px;
+}
+.history-date-row:last-child{border-bottom:none;}
+.history-date-row button{background:#FBE1E1;color:#9B1C1C;border:none;border-radius:8px;padding:5px 9px;font-size:11.5px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="brand-mark"><img id="loginLogoImg" src="" alt="" style="display:none;"><span id="loginLogoFallback">ب.م</span></div>
+    <h2 id="loginTitleText">لوحة متابعة التأخر الصباحي</h2>
+    <p class="sub">مدارس باب المعرفة — أدخل الرقم السري للدخول</p>
+    <div id="pinDots"></div>
+    <div class="keypad">
+      <button class="key" data-k="1">١</button>
+      <button class="key" data-k="2">٢</button>
+      <button class="key" data-k="3">٣</button>
+      <button class="key" data-k="4">٤</button>
+      <button class="key" data-k="5">٥</button>
+      <button class="key" data-k="6">٦</button>
+      <button class="key" data-k="7">٧</button>
+      <button class="key" data-k="8">٨</button>
+      <button class="key" data-k="9">٩</button>
+      <button class="key" data-k="del">⌫</button>
+      <button class="key" data-k="0">٠</button>
+      <button class="key" data-k="clear">مسح</button>
+    </div>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand-mark"><img id="topbarLogoImg" src="" alt="" style="display:none;"><span id="topbarLogoFallback">ب.م</span></div>
+      <div>
+        <div id="topbarTitleText">لوحة متابعة التأخر الصباحي</div>
+        <div id="schoolNameLine">مدارس باب المعرفة</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="save-indicator"><span class="dot"></span> <span id="saveText">تم الحفظ التلقائي</span></div>
+      <button class="pill-btn" id="reportsBtn">📊 التقارير والإحصائيات</button>
+      <button class="pill-btn" id="settingsBtn">⚙️ الإعدادات</button>
+      <button class="pill-btn" id="logoutBtn">🔒 تسجيل خروج</button>
+    </div>
+  </div>
+
+  <div class="main-wrap">
+    <div class="stats-row">
+      <div class="stat-card"><div class="num" id="statTotal">٠</div><div class="lbl">إجمالي الطلاب</div></div>
+      <div class="stat-card"><div class="num" id="statToday">٠</div><div class="lbl">متأخرون اليوم</div></div>
+      <div class="stat-card"><div class="num" id="statRepeat">٠</div><div class="lbl">تكرار التأخر (٣ مرات فأكثر)</div></div>
+    </div>
+
+    <div class="filters-row">
+      <input type="text" id="searchBox" placeholder="🔍 ابحث عن اسم طالب...">
+      <select id="classFilter"><option value="">📚 عرض كل الفصول</option></select>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn" id="pasteBtn">📋 لصق أسماء من إكسل</button>
+      <button class="btn primary" id="addBtn">+ إضافة طالب</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>اسم الطالب</th>
+            <th>الفصل</th>
+            <th>جوال ولي الأمر</th>
+            <th>عدد مرات التأخر</th>
+            <th>تاريخ آخر تأخر</th>
+            <th style="width:230px;">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: لصق أسماء من إكسل ============ -->
+<div class="overlay" id="pasteOverlay">
+  <div class="modal" style="max-width:520px;">
+    <button class="close-x" data-close="pasteOverlay">✕</button>
+    <h3>📋 لصق أسماء الطلاب من إكسل</h3>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:2px 0 12px;">انسخ الأعمدة من إكسل (اسم الطالب، الفصل، جوال ولي الأمر) والصقها هنا — عمود لكل سطر مفصول بـ Tab كما يأتي مباشرة من إكسل. يكفي أيضًا لصق أسماء فقط عمود واحد، وسيُطبَّق عليها فصل موحّد تختارينه بالأسفل.</p>
+    <div class="field">
+      <label>فصل موحّد (يُستخدم فقط إن لم يوجد عمود فصل باللصق)</label>
+      <select id="pasteDefaultClass"></select>
+    </div>
+    <div class="field">
+      <label>الصق هنا</label>
+      <textarea id="pasteArea" rows="8" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;" placeholder="مثال:&#10;أحمد سالم	1/أ	0555555555&#10;خالد فهد	1/ب	0566666666"></textarea>
+    </div>
+    <button class="btn primary" id="pasteFillBtn" style="width:100%;justify-content:center;">إضافة الطلاب</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: إضافة/تعديل طالب ============ -->
+<div class="overlay" id="studentModalOverlay">
+  <div class="modal" style="max-width:420px;">
+    <button class="close-x" data-close="studentModalOverlay">✕</button>
+    <h3>+ إضافة طالب</h3>
+    <div class="field"><label>اسم الطالب</label><input type="text" id="stName"></div>
+    <div class="field"><label>الفصل</label><select id="stClass"></select></div>
+    <div class="field"><label>جوال ولي الأمر (اختياري)</label><input type="tel" dir="ltr" id="stPhone"></div>
+    <div id="stMsg" style="min-height:18px;font-size:12px;color:var(--red);margin-bottom:8px;"></div>
+    <button class="btn primary" id="stSaveBtn" style="width:100%;justify-content:center;">حفظ</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: سجل تأخر الطالب ============ -->
+<div class="overlay" id="historyOverlay">
+  <div class="modal" style="max-width:420px;">
+    <button class="close-x" data-close="historyOverlay">✕</button>
+    <h3 id="historyTitle">سجل التأخر</h3>
+    <div id="historyList"></div>
+    <div id="historyEmpty" style="display:none;text-align:center;color:var(--ink-soft);padding:16px 0;font-size:13px;">لا يوجد تأخر مسجَّل لهذا الطالب.</div>
+  </div>
+</div>
+
+<!-- ============ MODAL: التقارير والإحصائيات ============ -->
+<div class="overlay" id="reportsOverlay">
+  <div class="modal" style="max-width:680px;">
+    <button class="close-x" data-close="reportsOverlay">✕</button>
+    <h3>📊 التقارير والإحصائيات</h3>
+    <div class="toolbar" style="margin-bottom:12px;">
+      <button class="btn primary" id="exportReportBtn">📥 تصدير تقرير كامل (Excel)</button>
+    </div>
+    <div class="table-wrap" style="max-height:55vh;">
+      <table>
+        <thead>
+          <tr><th class="name-cell">اسم الطالب</th><th>الفصل</th><th>عدد مرات التأخر</th><th>آخر تأخر</th></tr>
+        </thead>
+        <tbody id="reportsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: الإعدادات ============ -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal" style="max-width:480px;">
+    <button class="close-x" data-close="settingsOverlay">✕</button>
+    <h3>⚙️ الإعدادات</h3>
+
+    <div class="field"><label>اسم المدرسة</label><input type="text" id="setBrandName"></div>
+    <div class="field"><label>اسم اللوحة</label><input type="text" id="setBrandTitle"></div>
+
+    <div class="field">
+      <label>عدد الفصول لكل صف</label>
+      <div id="classConfigGrid" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+    <button class="btn" id="saveClassConfigBtn" style="width:100%;justify-content:center;margin-bottom:16px;">حفظ عدد الفصول</button>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0;">
+    <div class="field"><label>تغيير الرقم السري (٤ أرقام على الأقل)</label><input type="text" id="setNewPin" placeholder="اتركه فارغًا للإبقاء على الحالي" inputmode="numeric"></div>
+    <button class="btn" id="savePinBtn" style="width:100%;justify-content:center;">حفظ الرقم السري</button>
+  </div>
+</div>
+
+</body>
+<script>
+/* ================= HELPERS ================= */
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function uid(){ return 't' + Math.random().toString(36).slice(2,10); }
+function escapeHtml(str){
+  return String(str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function toArabicDigits(n){
+  const map = {'0':'٠','1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','7':'٧','8':'٨','9':'٩'};
+  return String(n).replace(/[0-9]/g, d => map[d]);
+}
+function formatDateDisplay(iso){
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${toArabicDigits(d)}/${toArabicDigits(m)}/${toArabicDigits(y)}`;
+}
+
+/* ================= STATE ================= */
+const PIN_KEY = 'tardy_panel_pin';
+const STUDENTS_KEY = 'tardy_panel_students';
+const CLASS_CONFIG_KEY = 'tardy_panel_class_config';
+const BRAND_NAME_KEY = 'tardy_panel_brand_name';
+const BRAND_TITLE_KEY = 'tardy_panel_brand_title';
+const LOGO_KEY = 'tardy_panel_logo';
+
+function loadPin(){ return localStorage.getItem(PIN_KEY) || '1234'; }
+function loadStudents(){
+  try{ return JSON.parse(localStorage.getItem(STUDENTS_KEY)) || []; }catch(e){ return []; }
+}
+function loadClassConfig(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(CLASS_CONFIG_KEY));
+    if(saved && typeof saved === 'object') return saved;
+  }catch(e){}
+  return {1:8, 2:8, 3:8, 4:8, 5:8, 6:8};
+}
+function loadBrandName(){ return localStorage.getItem(BRAND_NAME_KEY) || 'مدارس باب المعرفة'; }
+function loadBrandTitle(){ return localStorage.getItem(BRAND_TITLE_KEY) || 'لوحة متابعة التأخر الصباحي'; }
+
+let students = loadStudents();
+let classConfig = loadClassConfig();
+let lastSentSnapshot = null;
+let pinBuffer = '';
+
+/* ================= CLASS OPTIONS ================= */
+function buildClassOptions(){
+  const gradeNames = {1:'الأول',2:'الثاني',3:'الثالث',4:'الرابع',5:'الخامس',6:'السادس'};
+  const list = [];
+  for(let g=1; g<=6; g++){
+    const count = Math.max(1, Math.min(10, Number(classConfig[g])||8));
+    for(let i=1; i<=count; i++){
+      list.push(`${gradeNames[g]} ${toArabicDigits(i)}`);
+    }
+  }
+  return list;
+}
+function classOptionsHTML(currentVal){
+  const opts = buildClassOptions();
+  return '<option value="">اختر الفصل</option>' + opts.map(c =>
+    `<option value="${escapeHtml(c)}" ${c===currentVal?'selected':''}>${escapeHtml(c)}</option>`
+  ).join('');
+}
+function refreshClassFilterDropdown(){
+  const sel = document.getElementById('classFilter');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">📚 عرض كل الفصول</option>' + buildClassOptions().map(c =>
+    `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`
+  ).join('');
+  sel.value = current;
+}
+
+/* ================= BRANDING ================= */
+function applyBranding(){
+  const name = loadBrandName();
+  const title = loadBrandTitle();
+  document.title = title + ' - ' + name;
+  document.getElementById('loginTitleText').textContent = title;
+  document.querySelector('#loginScreen .sub').textContent = name + ' — أدخل الرقم السري للدخول';
+  document.getElementById('topbarTitleText').textContent = title;
+  document.getElementById('schoolNameLine').textContent = name;
+}
+function applyLogo(dataUrl){
+  const useImg = !!dataUrl;
+  ['loginLogoImg','topbarLogoImg'].forEach(id=>{
+    const img = document.getElementById(id);
+    img.src = dataUrl || '';
+    img.style.display = useImg ? 'block' : 'none';
+  });
+  ['loginLogoFallback','topbarLogoFallback'].forEach(id=>{
+    document.getElementById(id).style.display = useImg ? 'none' : 'flex';
+  });
+}
+applyBranding();
+
+/* ================= LOGIN ================= */
+const pinDotsEl = document.getElementById('pinDots');
+function renderPinDots(){
+  pinDotsEl.innerHTML = '';
+  for(let i=0;i<4;i++){
+    const d = document.createElement('div');
+    d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+    pinDotsEl.appendChild(d);
+  }
+}
+renderPinDots();
+document.querySelectorAll('.key[data-k]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const k = btn.dataset.k;
+    if(k === 'clear'){ pinBuffer = ''; }
+    else if(k === 'del'){ pinBuffer = pinBuffer.slice(0,-1); }
+    else if(pinBuffer.length < 12){ pinBuffer += k; }
+    renderPinDots();
+    document.getElementById('loginMsg').textContent = '';
+    if(pinBuffer.length >= 4 && k !== 'del' && k !== 'clear'){
+      tryLogin();
+    }
+  });
+});
+function tryLogin(){
+  if(pinBuffer === loadPin()){
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    pinBuffer = '';
+    renderPinDots();
+    boot();
+  }else if(pinBuffer.length >= 4){
+    document.getElementById('loginMsg').textContent = 'رقم سري غير صحيح';
+    setTimeout(()=>{ pinBuffer=''; renderPinDots(); }, 500);
+  }
+}
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+});
+
+/* ================= SAVE ================= */
+function flashSaved(){
+  const el = document.getElementById('saveText');
+  el.textContent = 'تم الحفظ التلقائي';
+}
+function saveStudents(){
+  try{ localStorage.setItem(STUDENTS_KEY, JSON.stringify(students)); }catch(e){}
+  flashSaved();
+  lastSentSnapshot = JSON.stringify(students);
+  if(window.__fsSaveStudents){
+    return window.__fsSaveStudents(students);
+  }
+  return Promise.resolve();
+}
+function saveClassConfig(){
+  try{ localStorage.setItem(CLASS_CONFIG_KEY, JSON.stringify(classConfig)); }catch(e){}
+  if(window.__fsSaveClassConfig) window.__fsSaveClassConfig(classConfig);
+}
+
+/* ================= TARDY LOGIC ================= */
+function tardyCount(s){ return (s.tardyDates||[]).length; }
+function markTardyToday(s){
+  if(!Array.isArray(s.tardyDates)) s.tardyDates = [];
+  const today = todayISO();
+  if(!s.tardyDates.includes(today)){
+    s.tardyDates.push(today);
+    s.tardyDates.sort();
+  }
+  s.lastDate = s.tardyDates[s.tardyDates.length-1] || '';
+}
+function removeTardyDate(s, dateIso){
+  s.tardyDates = (s.tardyDates||[]).filter(d => d !== dateIso);
+  s.lastDate = s.tardyDates.length ? s.tardyDates[s.tardyDates.length-1] : '';
+}
+function tardyBadgeClass(count){
+  if(count === 0) return 'tc-0';
+  if(count <= 2) return 'tc-low';
+  if(count <= 5) return 'tc-mid';
+  return 'tc-high';
+}
+
+/* ================= RENDER ================= */
+const tbody = document.getElementById('tbody');
+function renderTable(){
+  const q = (document.getElementById('searchBox').value||'').trim();
+  const klassFilter = document.getElementById('classFilter').value;
+  let list = students.slice();
+  if(q) list = list.filter(s => (s.name||'').includes(q));
+  if(klassFilter) list = list.filter(s => s.klass === klassFilter);
+  list.sort((a,b)=> (a.name||'').localeCompare(b.name||'', 'ar'));
+
+  const today = todayISO();
+  tbody.innerHTML = list.map(s=>{
+    const count = tardyCount(s);
+    const isTardyToday = (s.tardyDates||[]).includes(today);
+    return `
+    <tr data-id="${s.id}">
+      <td class="name-cell">${escapeHtml(s.name||'')}</td>
+      <td>${escapeHtml(s.klass||'—')}</td>
+      <td dir="ltr">${escapeHtml(s.phone||'—')}</td>
+      <td><span class="tardy-count-badge ${tardyBadgeClass(count)}">${toArabicDigits(count)}</span></td>
+      <td>${formatDateDisplay(s.lastDate)}</td>
+      <td>
+        <div class="action-btns">
+          <button type="button" class="icon-btn tardy-today-btn ${isTardyToday?'done':''}" data-role="tardytoday" title="${isTardyToday?'تم تسجيله متأخرًا اليوم':'تسجيل تأخر اليوم'}">${isTardyToday?'✔️ اليوم':'⏰ تأخر اليوم'}</button>
+          <button type="button" class="icon-btn" data-role="history" title="السجل">📜</button>
+          <button type="button" class="icon-btn del-btn" data-role="del" title="حذف">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('tr').forEach(tr=>{
+    const id = tr.dataset.id;
+    const s = students.find(x=>x.id===id);
+    if(!s) return;
+    tr.querySelector('[data-role="tardytoday"]').addEventListener('click', ()=>{
+      markTardyToday(s);
+      saveStudents();
+      renderTable();
+      renderStats();
+    });
+    tr.querySelector('[data-role="history"]').addEventListener('click', ()=> openHistoryModal(s));
+    tr.querySelector('[data-role="del"]').addEventListener('click', ()=>{
+      if(!confirm(`هل تريد حذف الطالب "${s.name}" نهائيًا؟`)) return;
+      students = students.filter(x=>x.id!==id);
+      saveStudents();
+      renderTable();
+      renderStats();
+    });
+  });
+}
+function renderStats(){
+  const today = todayISO();
+  document.getElementById('statTotal').textContent = toArabicDigits(students.length);
+  document.getElementById('statToday').textContent = toArabicDigits(students.filter(s=>(s.tardyDates||[]).includes(today)).length);
+  document.getElementById('statRepeat').textContent = toArabicDigits(students.filter(s=>tardyCount(s)>=3).length);
+}
+
+/* ================= HISTORY MODAL ================= */
+function openHistoryModal(s){
+  document.getElementById('historyTitle').textContent = `📜 سجل تأخر: ${s.name}`;
+  const list = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
+  const dates = (s.tardyDates||[]).slice().sort().reverse();
+  if(!dates.length){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+  }else{
+    empty.style.display = 'none';
+    list.innerHTML = dates.map(d => `
+      <div class="history-date-row">
+        <span>${formatDateDisplay(d)}</span>
+        <button type="button" data-rm-date="${d}">حذف هذا التاريخ</button>
+      </div>`).join('');
+    list.querySelectorAll('button[data-rm-date]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        removeTardyDate(s, btn.dataset.rmDate);
+        saveStudents();
+        renderTable();
+        renderStats();
+        openHistoryModal(s);
+      });
+    });
+  }
+  openModal('historyOverlay');
+}
+
+/* ================= MODALS ================= */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('[data-close]').forEach(b=>{
+  b.addEventListener('click', ()=> closeModal(b.dataset.close));
+});
+document.querySelectorAll('.overlay').forEach(ov=>{
+  ov.addEventListener('click', (e)=>{ if(e.target === ov) closeModal(ov.id); });
+});
+
+/* ================= ADD STUDENT ================= */
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  document.getElementById('stName').value = '';
+  document.getElementById('stPhone').value = '';
+  document.getElementById('stClass').innerHTML = classOptionsHTML('');
+  document.getElementById('stMsg').textContent = '';
+  openModal('studentModalOverlay');
+});
+document.getElementById('stSaveBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('stName').value.trim();
+  const klass = document.getElementById('stClass').value;
+  const phone = document.getElementById('stPhone').value.trim();
+  const msg = document.getElementById('stMsg');
+  if(!name || !klass){ msg.textContent = 'الرجاء تعبئة الاسم والفصل'; return; }
+  students.push({id:uid(), name, klass, phone, tardyDates:[], lastDate:''});
+  saveStudents();
+  renderTable();
+  renderStats();
+  closeModal('studentModalOverlay');
+});
+
+/* ================= PASTE FROM EXCEL ================= */
+document.getElementById('pasteBtn').addEventListener('click', ()=>{
+  document.getElementById('pasteDefaultClass').innerHTML = classOptionsHTML('');
+  document.getElementById('pasteArea').value = '';
+  openModal('pasteOverlay');
+});
+document.getElementById('pasteFillBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('pasteArea').value;
+  if(!raw.trim()){ closeModal('pasteOverlay'); return; }
+  const defaultClass = document.getElementById('pasteDefaultClass').value;
+  const lines = raw.split(/\r?\n/).filter(l=>l.trim()!=='');
+  let added = 0;
+  lines.forEach(line=>{
+    const cols = line.split('\t').map(c=>c.trim());
+    const name = cols[0] || '';
+    if(!name) return;
+    const klass = cols[1] || defaultClass || '';
+    const phone = cols[2] || '';
+    students.push({id:uid(), name, klass, phone, tardyDates:[], lastDate:''});
+    added++;
+  });
+  saveStudents();
+  renderTable();
+  renderStats();
+  closeModal('pasteOverlay');
+  alert(`تمت إضافة ${added} طالب/طالبة`);
+});
+
+/* ================= FILTERS ================= */
+document.getElementById('searchBox').addEventListener('input', renderTable);
+document.getElementById('classFilter').addEventListener('change', renderTable);
+
+/* ================= REPORTS ================= */
+document.getElementById('reportsBtn').addEventListener('click', ()=>{
+  renderReportsTable();
+  openModal('reportsOverlay');
+});
+function renderReportsTable(){
+  const box = document.getElementById('reportsTbody');
+  const sorted = students.slice().sort((a,b)=> tardyCount(b) - tardyCount(a));
+  box.innerHTML = sorted.map(s => `
+    <tr>
+      <td class="name-cell">${escapeHtml(s.name||'')}</td>
+      <td>${escapeHtml(s.klass||'—')}</td>
+      <td><span class="tardy-count-badge ${tardyBadgeClass(tardyCount(s))}">${toArabicDigits(tardyCount(s))}</span></td>
+      <td>${formatDateDisplay(s.lastDate)}</td>
+    </tr>`).join('');
+}
+document.getElementById('exportReportBtn').addEventListener('click', ()=>{
+  if(!window.XLSX){ alert('تعذر تحميل أداة التصدير، تحقق من الاتصال بالإنترنت'); return; }
+  const rows = [];
+  students.slice().sort((a,b)=> tardyCount(b) - tardyCount(a)).forEach(s=>{
+    rows.push({
+      'اسم الطالب': s.name || '',
+      'الفصل': s.klass || '',
+      'جوال ولي الأمر': s.phone || '—',
+      'عدد مرات التأخر': tardyCount(s),
+      'تواريخ التأخر': (s.tardyDates||[]).join(' ، ')
+    });
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:26},{wch:14},{wch:16},{wch:16},{wch:50}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'تقرير التأخر');
+  XLSX.writeFile(wb, `تقرير_التأخر_الصباحي_${todayISO()}.xlsx`);
+});
+
+/* ================= SETTINGS ================= */
+document.getElementById('settingsBtn').addEventListener('click', ()=>{
+  document.getElementById('setBrandName').value = loadBrandName();
+  document.getElementById('setBrandTitle').value = loadBrandTitle();
+  document.getElementById('setNewPin').value = '';
+  renderClassConfigGrid();
+  openModal('settingsOverlay');
+});
+function renderClassConfigGrid(){
+  const gradeNames = {1:'الأول',2:'الثاني',3:'الثالث',4:'الرابع',5:'الخامس',6:'السادس'};
+  const box = document.getElementById('classConfigGrid');
+  box.innerHTML = [1,2,3,4,5,6].map(g => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <span style="font-size:13px;">${gradeNames[g]}</span>
+      <input type="number" min="1" max="10" data-grade="${g}" value="${Math.max(1,Math.min(10,Number(classConfig[g])||8))}" style="width:70px;padding:8px;border:1px solid var(--line);border-radius:8px;text-align:center;">
+    </div>`).join('');
+}
+document.getElementById('saveClassConfigBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('#classConfigGrid input[data-grade]').forEach(inp=>{
+    const g = inp.dataset.grade;
+    classConfig[g] = Math.max(1, Math.min(10, Number(inp.value)||8));
+  });
+  saveClassConfig();
+  refreshClassFilterDropdown();
+  alert('تم حفظ عدد الفصول');
+});
+document.getElementById('setBrandName').addEventListener('change', (e)=>{
+  localStorage.setItem(BRAND_NAME_KEY, e.target.value.trim() || 'مدارس باب المعرفة');
+  if(window.__fsSaveBrandName) window.__fsSaveBrandName(loadBrandName());
+  applyBranding();
+});
+document.getElementById('setBrandTitle').addEventListener('change', (e)=>{
+  localStorage.setItem(BRAND_TITLE_KEY, e.target.value.trim() || 'لوحة متابعة التأخر الصباحي');
+  if(window.__fsSaveBrandTitle) window.__fsSaveBrandTitle(loadBrandTitle());
+  applyBranding();
+});
+document.getElementById('savePinBtn').addEventListener('click', ()=>{
+  const newPin = document.getElementById('setNewPin').value.trim();
+  if(!newPin) return;
+  if(newPin.length < 4){ alert('الرقم السري يجب أن يكون 4 أرقام على الأقل'); return; }
+  localStorage.setItem(PIN_KEY, newPin);
+  if(window.__fsSavePin) window.__fsSavePin(newPin);
+  document.getElementById('setNewPin').value = '';
+  alert('تم تغيير الرقم السري');
+});
+
+/* ================= REMOTE SYNC HOOKS ================= */
+window.__onRemoteStudents = function(remoteStudents){
+  if(!Array.isArray(remoteStudents)) return;
+  const incomingJson = JSON.stringify(remoteStudents);
+  if(incomingJson === lastSentSnapshot) return; // صدى تحديثنا نحن، تجاهله
+  students = remoteStudents;
+  if(document.getElementById('app').style.display !== 'none'){
+    renderTable();
+    renderStats();
+  }
+};
+window.__onRemotePin = function(pin){
+  if(typeof pin === 'string' && pin.length >= 4){
+    localStorage.setItem(PIN_KEY, pin);
+  }
+};
+window.__onRemoteClassConfig = function(cfg){
+  if(cfg && typeof cfg === 'object'){
+    classConfig = cfg;
+    try{ localStorage.setItem(CLASS_CONFIG_KEY, JSON.stringify(cfg)); }catch(e){}
+    refreshClassFilterDropdown();
+  }
+};
+window.__onRemoteBrandName = function(name){
+  if(name){ localStorage.setItem(BRAND_NAME_KEY, name); applyBranding(); }
+};
+window.__onRemoteBrandTitle = function(title){
+  if(title){ localStorage.setItem(BRAND_TITLE_KEY, title); applyBranding(); }
+};
+window.__onRemoteLogo = function(dataUrl){
+  if(dataUrl){ localStorage.setItem(LOGO_KEY, dataUrl); applyLogo(dataUrl); }
+};
+
+/* ================= BOOT ================= */
+function boot(){
+  refreshClassFilterDropdown();
+  renderTable();
+  renderStats();
+  const savedLogo = localStorage.getItem(LOGO_KEY);
+  if(savedLogo) applyLogo(savedLogo);
+}
+</script>
+
+<!-- ============ 🔥 وحدة الاتصال بـ Firebase (Realtime Database) ============ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC7_1z7k5q8hFVHJp4MXiihrV97dXikfWM",
+    authDomain: "essa-bab-almarfh.firebaseapp.com",
+    databaseURL: "https://essa-bab-almarfh-default-rtdb.europe-west1.firebasedatabase.app/",
+    projectId: "essa-bab-almarfh",
+    storageBucket: "essa-bab-almarfh.appspot.com",
+    messagingSenderId: "",
+    appId: ""
+  };
+
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    // مساحة اسم منفصلة تمامًا عن لوحة الغياب — لا تشترك بأي بيانات معها
+    const mainRef = ref(db, 'tardyPanel/main');
+
+    onValue(mainRef, (snapshot) => {
+      const data = snapshot.val();
+      if(!data) return;
+      if(window.__onRemoteStudents) window.__onRemoteStudents(data.students || []);
+      if(window.__onRemotePin) window.__onRemotePin(data.pin || '');
+      if(window.__onRemoteClassConfig && data.classConfig) window.__onRemoteClassConfig(data.classConfig);
+      if(window.__onRemoteBrandName && data.brandName) window.__onRemoteBrandName(data.brandName);
+      if(window.__onRemoteBrandTitle && data.brandTitle) window.__onRemoteBrandTitle(data.brandTitle);
+      if(window.__onRemoteLogo && data.logo) window.__onRemoteLogo(data.logo);
+    });
+
+    window.__fsSaveStudents = function(studentsArr){
+      set(ref(db, 'tardyPanel/main/updatedAt'), new Date().toISOString()).catch(()=>{});
+      return set(ref(db, 'tardyPanel/main/students'), studentsArr);
+    };
+    window.__fsSavePin = function(pin){
+      set(ref(db, 'tardyPanel/main/pin'), pin).catch(err => console.error('تعذّر مزامنة الرقم السري', err));
+    };
+    window.__fsSaveClassConfig = function(cfg){
+      set(ref(db, 'tardyPanel/main/classConfig'), cfg).catch(err => console.error('تعذّر مزامنة إعداد الفصول', err));
+    };
+    window.__fsSaveBrandName = function(name){
+      set(ref(db, 'tardyPanel/main/brandName'), name).catch(()=>{});
+    };
+    window.__fsSaveBrandTitle = function(title){
+      set(ref(db, 'tardyPanel/main/brandTitle'), title).catch(()=>{});
+    };
+  }catch(err){
+    console.error('تعذّر الاتصال بقاعدة البيانات', err);
+  }
+</script>
+</html>
